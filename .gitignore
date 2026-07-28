@@ -1,0 +1,12 @@
+.kh-config/
+.env
+.env.*
+!.env.example
+node_modules/
+artifacts/
+dist/
+milestone-0/private/
+deployments/private/
+*.tar.gz
+*.log
+.DS_Store

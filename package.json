@@ -1,0 +1,29 @@
+{
+  "name": "mandate-closeout-agent",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "mandate": "./src/cli.mjs"
+  },
+  "scripts": {
+    "build": "npm run build:contracts && npm run build:web",
+    "build:contracts": "node scripts/compile-contracts.mjs",
+    "build:web": "vite build web --outDir ../dist",
+    "dev:web": "vite web --host 0.0.0.0",
+    "mandate": "node src/cli.mjs",
+    "test": "node --test test/**/*.test.mjs",
+    "verify:web": "node scripts/verify-web.mjs",
+    "compile:spike": "node milestone-0/compile.mjs",
+    "prepare:spike": "node milestone-0/prepare-deployment.mjs"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.4.0",
+    "ganache": "^7.9.2",
+    "solc": "^0.8.30",
+    "viem": "^2.33.1"
+  },
+  "devDependencies": {
+    "vite": "^8.1.5"
+  }
+}

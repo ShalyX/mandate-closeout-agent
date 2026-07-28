@@ -1,0 +1,14 @@
+[
+  {
+    "type": "function",
+    "name": "deploy",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      { "name": "_initCode", "type": "bytes" },
+      { "name": "_salt", "type": "bytes32" }
+    ],
+    "outputs": [
+      { "name": "createdContract", "type": "address" }
+    ]
+  }
+]

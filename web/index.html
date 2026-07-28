@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A KeeperHub-powered agent that safely closes expired onchain mandates."
+    />
+    <title>Mandate — Close what expired</title>
+    <script type="module" src="/src/main.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <a class="wordmark" href="#top" aria-label="Mandate home">
+          <span class="wordmark-mark" aria-hidden="true">M</span>
+          <span>MANDATE</span>
+        </a>
+        <div class="network">
+          <span class="network-dot"></span>
+          <span>SEP</span>
+          <span class="muted">11155111</span>
+        </div>
+        <a class="proof-link" href="#proof">View proof <span>↗</span></a>
+      </header>
+
+      <main id="top">
+        <section class="hero">
+          <div class="hero-art" aria-hidden="true">
+            <img
+              src="/assets/mandate-seal.png"
+              alt=""
+              width="1672"
+              height="941"
+              fetchpriority="high"
+            />
+            <div class="hero-vignette"></div>
+          </div>
+          <div class="hero-copy">
+            <p class="eyebrow">AUTONOMOUS TREASURY CLOSEOUT / 01</p>
+            <h1>Close what<br /><em>expired.</em></h1>
+            <p class="hero-deck">
+              An agent that settles only approved obligations, kills stale
+              permissions, returns every residual asset, and removes its own
+              authority.
+            </p>
+            <div class="hero-actions">
+              <button class="primary-action" id="replay-button" type="button">
+                <span>Replay closeout</span>
+                <span class="action-icon">▶</span>
+              </button>
+              <a
+                class="text-action"
+                href="https://sepolia.etherscan.io/address/0x63001f6B89bb212895e6f4B5c074Dc3E86B11a0a"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Inspect vault ↗
+              </a>
+            </div>
+          </div>
+          <div class="hero-index" aria-hidden="true">
+            <span>KEEPERHUB</span>
+            <span>EXECUTION LAYER</span>
+          </div>
+        </section>
+
+        <section class="mechanism" aria-labelledby="mechanism-title">
+          <div class="section-intro">
+            <p class="eyebrow">LIVE MANDATE / SEPOLIA</p>
+            <h2 id="mechanism-title">One decision at a time.</h2>
+            <p>
+              The agent re-reads chain state after every receipt. It cannot
+              invent a recipient, change the treasury, or skip an unresolved
+              obligation.
+            </p>
+          </div>
+
+          <div class="closeout-stage" id="closeout-stage">
+            <div class="stage-header">
+              <div>
+                <span class="micro-label">MANDATE VAULT</span>
+                <a
+                  class="address"
+                  href="https://sepolia.etherscan.io/address/0x63001f6B89bb212895e6f4B5c074Dc3E86B11a0a"
+                  target="_blank"
+                  rel="noreferrer"
+                  >0x6300…1a0a ↗</a
+                >
+              </div>
+              <div class="live-state" id="live-state">
+                <span class="state-pulse"></span>
+                <span id="state-label">Reading Sepolia</span>
+              </div>
+            </div>
+
+            <div class="balance-ledger">
+              <span class="ledger-label">ORIGINAL BALANCE</span>
+              <strong>1,000.00</strong>
+              <span class="unit">mUSD</span>
+              <span class="equation" id="equation">250 paid + 750 returned</span>
+            </div>
+
+            <ol class="closeout-rail" aria-label="Closeout execution sequence">
+              <li class="rail-step" data-step="0">
+                <div class="rail-number">01</div>
+                <div class="rail-line"><span></span></div>
+                <div class="rail-copy">
+                  <span class="step-label">SETTLE</span>
+                  <strong>250 mUSD</strong>
+                  <span>Required obligation</span>
+                </div>
+                <a
+                  class="receipt"
+                  href="https://sepolia.etherscan.io/tx/0x48fb29c060232a1ad1f3add4516bbc535d38fc17f6e0bb1ae40da74716577fe3"
+                  target="_blank"
+                  rel="noreferrer"
+                  >RECEIPT ↗</a
+                >
+              </li>
+              <li class="rail-step" data-step="1">
+                <div class="rail-number">02</div>
+                <div class="rail-line"><span></span></div>
+                <div class="rail-copy">
+                  <span class="step-label">REVOKE</span>
+                  <strong>100 → 0</strong>
+                  <span>Allowance removed</span>
+                </div>
+                <a
+                  class="receipt"
+                  href="https://sepolia.etherscan.io/tx/0xebe7605565776d5017e733578e191b6fed723266ea103b11294e025c9fed476f"
+                  target="_blank"
+                  rel="noreferrer"
+                  >RECEIPT ↗</a
+                >
+              </li>
+              <li class="rail-step" data-step="2">
+                <div class="rail-number">03</div>
+                <div class="rail-line"><span></span></div>
+                <div class="rail-copy">
+                  <span class="step-label">SWEEP</span>
+                  <strong>750 mUSD</strong>
+                  <span>Returned to treasury</span>
+                </div>
+                <a
+                  class="receipt"
+                  href="https://sepolia.etherscan.io/tx/0x9e7da58e07785dac5980bb03897c125c64789b59d339dddeb4dcb14c02811de0"
+                  target="_blank"
+                  rel="noreferrer"
+                  >RECEIPT ↗</a
+                >
+              </li>
+              <li class="rail-step" data-step="3">
+                <div class="rail-number">04</div>
+                <div class="rail-line"><span></span></div>
+                <div class="rail-copy">
+                  <span class="step-label">FINALIZE</span>
+                  <strong>0x00…0000</strong>
+                  <span>Executor removed</span>
+                </div>
+                <a
+                  class="receipt"
+                  href="https://sepolia.etherscan.io/tx/0x8d56a87b01af1f776dbffeded897d11dba5d5a2e8aad3d1cf8c024dea46db808"
+                  target="_blank"
+                  rel="noreferrer"
+                  >RECEIPT ↗</a
+                >
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <section class="proof" id="proof" aria-labelledby="proof-title">
+          <div class="proof-heading">
+            <p class="eyebrow">NOT A MOCKUP / 04 RECEIPTS</p>
+            <h2 id="proof-title">The chain is the audit trail.</h2>
+          </div>
+          <div class="proof-grid">
+            <article class="proof-statement">
+              <span class="proof-kicker">RESULT</span>
+              <strong id="proof-result">1,000 = 250 + 750</strong>
+              <p>Every unit reconciles. Nothing remains in the vault.</p>
+            </article>
+            <dl class="proof-facts">
+              <div>
+                <dt>Network</dt>
+                <dd>Ethereum Sepolia</dd>
+              </div>
+              <div>
+                <dt>Execution</dt>
+                <dd>KeeperHub</dd>
+              </div>
+              <div>
+                <dt>Vault balance</dt>
+                <dd id="vault-balance">0 mUSD</dd>
+              </div>
+              <div>
+                <dt>Allowance</dt>
+                <dd id="allowance-value">0 mUSD</dd>
+              </div>
+              <div>
+                <dt>Executor</dt>
+                <dd id="executor-value">0x00…0000</dd>
+              </div>
+              <div>
+                <dt>Last checked</dt>
+                <dd id="last-checked">Waiting…</dd>
+              </div>
+            </dl>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <span>MANDATE / AGENTS ONCHAIN 2026</span>
+        <span>BUILT ON KEEPERHUB</span>
+      </footer>
+    </div>
+  </body>
+</html>
