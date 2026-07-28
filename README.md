@@ -2,11 +2,11 @@
 
 **Close expired onchain mandates without leaving funds, permissions, or executor authority behind.**
 
-[Live product](https://mandate-closeout.mix-azure-2p7is32.chatgpt.site) ·
+[Live product](https://mandate-closeout.vercel.app/) ·
 [Sepolia vault](https://sepolia.etherscan.io/address/0x63001f6B89bb212895e6f4B5c074Dc3E86B11a0a) ·
 [Finalization transaction](https://sepolia.etherscan.io/tx/0x8d56a87b01af1f776dbffeded897d11dba5d5a2e8aad3d1cf8c024dea46db808)
 
-![Mandate's closeout mechanism](web/public/assets/mandate-seal.png)
+![Mandate's closeout mechanism](web/public/assets/mandate-seal.webp)
 
 ## What it is
 
@@ -241,4 +241,3 @@ Built for the
 The submission requires a public repository, a short demo video, and a
 KeeperHub-executed transaction. This repository contains the implementation and
 onchain proof; the demo video will be linked here when completed.
-
