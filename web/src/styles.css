@@ -581,6 +581,34 @@ h1 em {
   opacity: 0.5;
 }
 
+.autonomy-card {
+  display: grid;
+  grid-template-columns: minmax(12rem, 0.7fr) minmax(16rem, 1.3fr);
+  gap: 24px;
+  align-items: center;
+  margin-top: 24px;
+  padding: 18px 20px;
+  border: 1px solid rgba(188, 255, 86, 0.28);
+  background:
+    linear-gradient(110deg, rgba(188, 255, 86, 0.08), transparent 46%),
+    rgba(7, 10, 9, 0.82);
+}
+
+.autonomy-card strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--signal-hot);
+  font-family: var(--mono);
+  font-size: clamp(16px, 2vw, 21px);
+  letter-spacing: 0.08em;
+}
+
+.autonomy-card p {
+  margin: 0;
+  color: var(--paper-dim);
+  line-height: 1.55;
+}
+
 .lifecycle-bar {
   display: flex;
   align-items: center;
@@ -1119,6 +1147,10 @@ footer {
   .lifecycle-bar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .autonomy-card {
+    grid-template-columns: 1fr;
   }
 
   .section-intro {
