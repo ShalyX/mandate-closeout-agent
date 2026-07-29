@@ -49,6 +49,12 @@ export async function runAutonomyCycle({
       });
     } catch (error) {
       summary.failed += 1;
+      console.warn("Autonomy authorization attempt failed", {
+        vault: authorization.vault,
+        code: error?.code ?? "AUTONOMY_CYCLE_FAILED",
+        name: error?.name ?? "Error",
+        message: error?.message ?? "Unknown authorization failure",
+      });
       await release({
         status:
           error?.code === "RETRY_LIMIT_REACHED" ? "blocked" : "retrying",
