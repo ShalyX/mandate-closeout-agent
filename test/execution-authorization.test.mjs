@@ -119,3 +119,33 @@ test("autonomous authorization covers the whole closeout until its explicit expi
     false,
   );
 });
+
+test("autonomous authorization remains valid after address storage normalizes casing", async () => {
+  const account = privateKeyToAccount(
+    "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+  );
+  const signedIntent = {
+    scope: "autonomous-closeout",
+    owner: account.address,
+    vault: "0x3000000000000000000000000000000000000003",
+    chainId: 11155111,
+    issuedAt: 1_800_000_000,
+    validUntil: 1_802_592_000,
+    nonce: "casing-round-trip-123456",
+  };
+  const signature = await account.signMessage({
+    message: buildExecutionMessage(signedIntent),
+  });
+
+  assert.equal(
+    await verifyExecutionAuthorization(
+      {
+        ...signedIntent,
+        owner: signedIntent.owner.toLowerCase(),
+        signature,
+      },
+      { now: signedIntent.issuedAt },
+    ),
+    true,
+  );
+});
