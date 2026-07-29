@@ -2,7 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import solc from "solc";
 
-const sourceNames = ["MandateVault.sol", "DemoToken.sol"];
+const sourceNames = [
+  "MandateFactory.sol",
+  "MandateVault.sol",
+  "DemoToken.sol",
+];
 const outputDirectory = path.resolve("artifacts", "contracts");
 const input = {
   language: "Solidity",
@@ -43,6 +47,7 @@ if (errors.some((entry) => entry.severity === "error")) process.exit(1);
 
 fs.mkdirSync(outputDirectory, { recursive: true });
 for (const [sourceName, contractName] of [
+  ["MandateFactory.sol", "MandateFactory"],
   ["MandateVault.sol", "MandateVault"],
   ["DemoToken.sol", "DemoToken"],
 ]) {
@@ -56,4 +61,6 @@ for (const [sourceName, contractName] of [
     `${JSON.stringify(contract.abi, null, 2)}\n`,
   );
 }
-console.log(`Compiled MandateVault and DemoToken with solc ${solc.version()}`);
+console.log(
+  `Compiled MandateFactory, MandateVault, and DemoToken with solc ${solc.version()}`,
+);

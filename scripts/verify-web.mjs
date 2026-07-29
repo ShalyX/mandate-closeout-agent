@@ -6,6 +6,8 @@ const startedAt = performance.now();
 const vault = "0x63001f6B89bb212895e6f4B5c074Dc3E86B11a0a";
 const token = "0x56E766e5ED1cC545B60F43651F67b1371d9ead5f";
 const spender = "0x1000000000000000000000000000000000000003";
+const factory = "0x4977Bf6C7120b7335bA4c06e516E938FDDC6D9a5";
+const platformExecutor = "0x293b3E59f3D558862EadFB682C0e3E5531e9bA1e";
 const client = createPublicClient({
   chain: sepolia,
   transport: http("https://ethereum-sepolia-rpc.publicnode.com", {
@@ -20,6 +22,10 @@ const vaultAbi = parseAbi([
 const tokenAbi = parseAbi([
   "function balanceOf(address) view returns (uint256)",
   "function allowance(address,address) view returns (uint256)",
+]);
+const factoryAbi = parseAbi([
+  "function platformExecutor() view returns (address)",
+  "function mandateCount() view returns (uint256)",
 ]);
 
 function fail(failedStep, message) {
@@ -48,7 +54,8 @@ try {
     fail("static-build", "Built document has no JavaScript bundle.");
   }
 
-  const [finalized, executor, balance, allowance] = await Promise.all([
+  const [finalized, executor, balance, allowance, factoryCode, pinnedExecutor] =
+    await Promise.all([
     client.readContract({
       address: vault,
       abi: vaultAbi,
@@ -71,10 +78,19 @@ try {
       functionName: "allowance",
       args: [vault, spender],
     }),
+    client.getBytecode({ address: factory }),
+    client.readContract({
+      address: factory,
+      abi: factoryAbi,
+      functionName: "platformExecutor",
+    }),
   ]);
 
   if (!finalized || executor !== zeroAddress || balance !== 0n || allowance !== 0n) {
     fail("live-state", "Sepolia mandate is not fully closed.");
+  }
+  if (!factoryCode || pinnedExecutor.toLowerCase() !== platformExecutor.toLowerCase()) {
+    fail("factory-state", "Sepolia factory or its KeeperHub executor is invalid.");
   }
 
   process.stdout.write(
@@ -91,10 +107,13 @@ try {
         executorRemoved: executor === zeroAddress,
         vaultBalance: balance.toString(),
         allowance: allowance.toString(),
+        factoryDeployed: factoryCode.length > 2,
+        platformExecutor: pinnedExecutor,
       },
       evidence: {
         vault,
         token,
+        factory,
       },
     })}\n`,
   );
@@ -104,4 +123,3 @@ try {
     error instanceof Error ? error.message : "Unknown verification error",
   );
 }
-

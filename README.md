@@ -3,6 +3,7 @@
 **Close expired onchain mandates without leaving funds, permissions, or executor authority behind.**
 
 [Live product](https://mandate-closeout.vercel.app/) ·
+[Sepolia factory](https://sepolia.etherscan.io/address/0x4977Bf6C7120b7335bA4c06e516E938FDDC6D9a5) ·
 [Sepolia vault](https://sepolia.etherscan.io/address/0x63001f6B89bb212895e6f4B5c074Dc3E86B11a0a) ·
 [Finalization transaction](https://sepolia.etherscan.io/tx/0x8d56a87b01af1f776dbffeded897d11dba5d5a2e8aad3d1cf8c024dea46db808)
 
@@ -24,6 +25,10 @@ When a mandate expires, the agent:
 The model never invents a recipient, changes an amount, selects a new token,
 redirects the treasury, or submits an arbitrary contract call. Those boundaries
 are enforced by the contract.
+
+The self-service Sepolia beta lets a user connect a wallet, create a
+factory-indexed vault they own, configure its fixed closeout policy, fund and
+activate it, and authorize one deterministic KeeperHub step at a time.
 
 ## Why it exists
 
@@ -95,10 +100,11 @@ KeeperHub execution ID.
 flowchart TD
     A["Sepolia state"] --> B["State reader"]
     B --> C["Deterministic planner"]
-    C --> D["KeeperHub adapter"]
-    D --> E["MandateVault"]
-    E --> F["Receipt + audit trail"]
-    F --> A
+    C --> D["Signed API + persistence"]
+    D --> E["KeeperHub Direct Execution"]
+    E --> F["MandateVault"]
+    F --> G["Receipt + audit trail"]
+    G --> A
 ```
 
 ### Trust boundary
@@ -106,11 +112,13 @@ flowchart TD
 | Layer | Responsible for |
 |---|---|
 | `MandateVault.sol` | custody, approved obligations, fixed treasury, lifecycle rules, permissions, idempotency |
+| `MandateFactory.sol` | user-owned vault creation, discovery, and pinned platform executor |
 | State reader | reconstructing the current mandate from chain reads |
 | Planner | selecting the next allowlisted action in strict order |
 | Reconciler | waiting, recovering, and preventing duplicate submissions |
-| KeeperHub adapter | submitting the selected contract method and retrieving execution status |
-| Product surface | explaining the sequence and linking real proof; never acting as the source of truth |
+| Signed execution API | owner authorization, factory checks, rate limits, persistence, and simulation |
+| KeeperHub adapter | submitting the selected contract method with idempotency and retrieving status |
+| Product surface | wallet setup and lifecycle controls; never acting as the source of truth |
 
 ### Closeout order
 
@@ -148,6 +156,7 @@ The contract blocks skipping ahead.
 
 ```text
 contracts/
+  MandateFactory.sol     Deploys and indexes user-owned vaults
   MandateVault.sol       Contract-enforced closeout state machine
   DemoToken.sol          No-value ERC-20 used for the Sepolia proof
 src/
@@ -155,7 +164,9 @@ src/
   agent/reconciler.mjs   Prevents duplicate work and handles recovery
   chain/state-reader.mjs Reconstructs authoritative state
   keeperhub/adapter.mjs  Allowlists KeeperHub contract calls
+  server/                Signed execution service, persistence, and runtime
   cli.mjs                Machine-readable planner CLI
+api/                     Vercel health, readiness, execution, and status routes
 web/                     Judge-facing product surface
 test/                    Contract, planner, reconciliation, CLI, and UI-state tests
 ```
@@ -178,6 +189,10 @@ Then open the local URL printed by Vite.
 
 No secret is required to inspect the source, run the tests, build the
 contracts, or open the frontend.
+
+The hosted execution API additionally requires server-only `KH_API_KEY` and
+`DATABASE_URL` variables. Copy `.env.example` for local setup. Never expose
+either value through a `VITE_` variable.
 
 ### Planner CLI
 
@@ -218,18 +233,18 @@ The suite covers:
 
 ## Honest scope
 
-This hackathon build proves a custom-vault closeout on Ethereum Sepolia using a
-demo token.
+This hackathon build provides a self-service beta on Ethereum Sepolia and a
+completed reference closeout using a demo token.
 
 It does **not** claim:
 
 - production DAO adoption;
 - Safe module integration;
-- arbitrary ERC-20 compatibility;
+- compatibility guarantees for non-standard ERC-20 implementations;
 - Permit2 or protocol-specific permission revocation;
 - cross-chain closeout;
 - autonomous governance decisions; or
-- mainnet readiness.
+- audited mainnet readiness.
 
 Those are post-hackathon extensions, not hidden parts of the demo.
 

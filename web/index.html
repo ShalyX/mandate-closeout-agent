@@ -22,7 +22,9 @@
           <span>SEP</span>
           <span class="muted">11155111</span>
         </div>
-        <a class="proof-link" href="#proof">View proof <span>↗</span></a>
+        <button class="wallet-button" id="wallet-button" type="button">
+          Connect wallet
+        </button>
       </header>
 
       <main id="top">
@@ -64,6 +66,126 @@
             <span>KEEPERHUB</span>
             <span>EXECUTION LAYER</span>
           </div>
+        </section>
+
+        <section class="workspace" id="workspace" aria-labelledby="workspace-title">
+          <div class="section-intro workspace-intro">
+            <p class="eyebrow">SELF-SERVICE BETA / SEPOLIA</p>
+            <h2 id="workspace-title">Create your own mandate.</h2>
+            <p>
+              Your wallet owns the vault. KeeperHub receives only the narrow
+              execution authority encoded by the mandate.
+            </p>
+          </div>
+
+          <div class="workspace-grid">
+            <form class="mandate-form" id="mandate-form">
+              <div class="form-heading">
+                <span class="micro-label">NEW MANDATE</span>
+                <span id="wallet-status">Connect a wallet to begin</span>
+              </div>
+              <label>
+                <span>Treasury address</span>
+                <input
+                  id="treasury-input"
+                  name="treasury"
+                  inputmode="text"
+                  autocomplete="off"
+                  placeholder="0x…"
+                  required
+                />
+              </label>
+              <div class="field-row">
+                <label>
+                  <span>Close date</span>
+                  <input id="end-input" name="endAt" type="datetime-local" required />
+                </label>
+                <label>
+                  <span>Recovery delay</span>
+                  <select id="grace-input" name="graceHours">
+                    <option value="24">24 hours</option>
+                    <option value="48">48 hours</option>
+                    <option value="72">72 hours</option>
+                    <option value="168">7 days</option>
+                  </select>
+                </label>
+              </div>
+              <p class="form-note">
+                Sepolia only. Creation requires a wallet confirmation and a
+                small amount of Sepolia ETH for gas.
+              </p>
+              <button class="primary-action" id="create-button" type="submit" disabled>
+                <span>Create mandate</span>
+                <span class="action-icon">↗</span>
+              </button>
+              <p class="form-message" id="form-message" role="status" aria-live="polite"></p>
+            </form>
+
+            <div class="mandate-index">
+              <div class="form-heading">
+                <span class="micro-label">YOUR VAULTS</span>
+                <button class="refresh-button" id="refresh-vaults" type="button" disabled>
+                  Refresh
+                </button>
+              </div>
+              <div class="empty-vaults" id="vault-list">
+                Connect your wallet to discover mandates owned by this account.
+              </div>
+            </div>
+          </div>
+
+          <section class="vault-control" id="vault-control" hidden>
+            <div class="control-header">
+              <div>
+                <span class="micro-label">SELECTED VAULT</span>
+                <h3 id="selected-vault">0x…</h3>
+              </div>
+              <div class="control-state" id="selected-state">Draft</div>
+            </div>
+
+            <div class="control-grid">
+              <form class="control-form" data-action="track-token">
+                <span class="micro-label">01 / TRACK ASSET</span>
+                <label>Token contract <input name="token" placeholder="0x…" required /></label>
+                <button type="submit">Add tracked token ↗</button>
+              </form>
+
+              <form class="control-form" data-action="fund">
+                <span class="micro-label">02 / FUND VAULT</span>
+                <label>Token contract <input name="token" placeholder="0x…" required /></label>
+                <label>Amount <input name="amount" inputmode="decimal" placeholder="1000" required /></label>
+                <button type="submit">Transfer to vault ↗</button>
+              </form>
+
+              <form class="control-form" data-action="obligation">
+                <span class="micro-label">03 / ADD OBLIGATION</span>
+                <label>Token contract <input name="token" placeholder="0x…" required /></label>
+                <label>Recipient <input name="recipient" placeholder="0x…" required /></label>
+                <label>Amount <input name="amount" inputmode="decimal" placeholder="250" required /></label>
+                <label>Due date <input name="dueAt" type="datetime-local" required /></label>
+                <button type="submit">Add obligation ↗</button>
+              </form>
+
+              <form class="control-form" data-action="allowance">
+                <span class="micro-label">04 / WATCH ALLOWANCE</span>
+                <label>Token contract <input name="token" placeholder="0x…" required /></label>
+                <label>Spender <input name="spender" placeholder="0x…" required /></label>
+                <button type="submit">Register target ↗</button>
+              </form>
+            </div>
+
+            <div class="lifecycle-bar">
+              <p id="control-message" role="status" aria-live="polite">
+                Configure the draft, fund it, then activate. Configuration locks after activation.
+              </p>
+              <div>
+                <button id="run-closeout" type="button" hidden>Run next closeout step</button>
+                <button id="activate-vault" type="button">Activate mandate</button>
+                <button id="pause-vault" type="button" hidden>Pause</button>
+                <button id="resume-vault" type="button" hidden>Resume</button>
+              </div>
+            </div>
+          </section>
         </section>
 
         <section class="mechanism" aria-labelledby="mechanism-title">

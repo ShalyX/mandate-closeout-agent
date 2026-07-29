@@ -18,12 +18,13 @@
     "prepare:spike": "node milestone-0/prepare-deployment.mjs"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^5.4.0",
-    "ganache": "^7.9.2",
-    "solc": "^0.8.30",
+    "@neondatabase/serverless": "^1.1.0",
     "viem": "^2.33.1"
   },
   "devDependencies": {
+    "@openzeppelin/contracts": "^5.4.0",
+    "ganache": "^7.9.2",
+    "solc": "^0.8.30",
     "vite": "^8.1.5"
   }
 }
