@@ -51,22 +51,42 @@ export default async function handler(req, res) {
     return send(res, result.reused ? 200 : 202, { ok: true, ...result }, requestId);
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
+    console.error("execute-step failed", {
+      requestId,
+      code: error?.code ?? "UNCLASSIFIED",
+      name: error?.name ?? "UnknownError",
+    });
     const malformed =
       error instanceof SyntaxError ||
       error?.name === "SyntaxError" ||
       /JSON|Unexpected end|Unexpected token/i.test(message);
-    const rejected = /authorization|factory|owner|eligible|simulation/i.test(
-      message,
-    );
+    const rejectedCodes = new Set([
+      "AUTHORIZATION_INVALID",
+      "UNKNOWN_VAULT",
+      "OWNER_MISMATCH",
+      "NOT_ELIGIBLE",
+      "SIMULATION_REJECTED",
+    ]);
+    const rejected =
+      rejectedCodes.has(error?.code) ||
+      /authorization|factory|owner|eligible|simulation/i.test(message);
+    const dependencyFailure =
+      error?.message === "KeeperHub request failed" ||
+      /fetch failed|timeout|database|postgres|connection/i.test(message);
     return send(
       res,
-      malformed ? 400 : rejected ? 422 : 500,
+      malformed ? 400 : rejected ? 422 : dependencyFailure ? 502 : 500,
       {
         error: malformed
           ? "invalid_request"
           : rejected
             ? "execution_rejected"
+            : dependencyFailure
+              ? "dependency_unavailable"
             : "internal_error",
+        ...(error?.code && /^[A-Z0-9_-]{2,80}$/i.test(error.code)
+          ? { code: error.code }
+          : {}),
       },
       requestId,
     );

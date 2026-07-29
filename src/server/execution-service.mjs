@@ -1,5 +1,11 @@
 import { planNextAction } from "../agent/planner.mjs";
 
+function serviceError(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
 function actionCall({ action, chainId, vault, vaultAbi }) {
   if (action.kind === "settleObligation") {
     return {
@@ -61,19 +67,25 @@ export function createExecutionService({
   return {
     async executeStep(intent) {
       if (!(await verifyAuthorization(intent))) {
-        throw new Error("Invalid owner authorization");
+        throw serviceError("AUTHORIZATION_INVALID", "Invalid owner authorization");
       }
       if (!(await isFactoryMandate(intent.vault))) {
-        throw new Error("Vault is not registered by the Mandate factory");
+        throw serviceError(
+          "UNKNOWN_VAULT",
+          "Vault is not registered by the Mandate factory",
+        );
       }
       const chainOwner = await readOwner(intent.vault);
       if (chainOwner.toLowerCase() !== intent.owner.toLowerCase()) {
-        throw new Error("Signer is not the mandate owner");
+        throw serviceError("OWNER_MISMATCH", "Signer is not the mandate owner");
       }
 
       const snapshot = await readSnapshot(intent.vault);
       if (!snapshot.closeoutEligible) {
-        throw new Error("Mandate is not eligible for closeout execution");
+        throw serviceError(
+          "NOT_ELIGIBLE",
+          "Mandate is not eligible for closeout execution",
+        );
       }
       const action = planNextAction(snapshot);
       const identity = actionIdentity(action);
@@ -83,7 +95,10 @@ export function createExecutionService({
       const call = actionCall({ action, chainId, vault: intent.vault, vaultAbi });
       const simulation = await keeperHub.simulateContractCall(call);
       if (!simulation.success || simulation.wouldRevert) {
-        throw new Error("KeeperHub simulation rejected the closeout action");
+        throw serviceError(
+          "SIMULATION_REJECTED",
+          "KeeperHub simulation rejected the closeout action",
+        );
       }
 
       const idempotencyKey =
