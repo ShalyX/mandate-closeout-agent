@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { neon } from "@neondatabase/serverless";
+import { getAddress } from "viem";
 
 const AUTHORIZATION_STATUSES = new Set([
   "armed",
@@ -213,8 +214,8 @@ export function createExecutionRepository({
       `;
       return rows.map((row) => ({
         scope: "autonomous-closeout",
-        vault: row.vault,
-        owner: row.owner_address,
+        vault: getAddress(row.vault),
+        owner: getAddress(row.owner_address),
         chainId: Number(row.chain_id),
         issuedAt: Number(row.issued_at),
         validUntil: Number(row.valid_until),
