@@ -20,6 +20,18 @@ export default async function handler(req, res) {
   }
 
   try {
+    const body =
+      typeof req.body === "string" ? JSON.parse(req.body) : (req.body ?? {});
+    if (
+      typeof body.vault !== "string" ||
+      typeof body.owner !== "string" ||
+      body.chainId !== 11155111 ||
+      !Number.isInteger(body.issuedAt) ||
+      typeof body.nonce !== "string" ||
+      typeof body.signature !== "string"
+    ) {
+      return send(res, 400, { error: "invalid_request" }, requestId);
+    }
     const runtime = createServerRuntime();
     const subject = String(
       req.headers["x-forwarded-for"] ?? req.socket?.remoteAddress ?? "unknown",
@@ -35,15 +47,13 @@ export default async function handler(req, res) {
       return send(res, 429, { error: "rate_limited" }, requestId);
     }
 
-    const body =
-      typeof req.body === "string" ? JSON.parse(req.body) : (req.body ?? {});
     const result = await runtime.service.executeStep(body);
     return send(res, result.reused ? 200 : 202, { ok: true, ...result }, requestId);
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
-    const clientError = /authorization|factory|owner|eligible|simulation/i.test(
-      message,
-    );
+    const clientError =
+      error instanceof SyntaxError ||
+      /authorization|factory|owner|eligible|simulation/i.test(message);
     return send(
       res,
       clientError ? 422 : 500,
