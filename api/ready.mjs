@@ -5,8 +5,14 @@ import { FACTORY } from "../src/server/runtime.mjs";
 
 export default async function handler(_req, res) {
   res.setHeader("Cache-Control", "no-store");
+  const keeperHubApiKey = (
+    process.env.KH_API_KEY ??
+    process.env.KH_TOKEN ??
+    ""
+  ).trim();
   const checks = {
-    keeperHubConfigured: Boolean(process.env.KH_API_KEY ?? process.env.KH_TOKEN),
+    keeperHubConfigured: Boolean(keeperHubApiKey),
+    keeperHubKeyFormatValid: keeperHubApiKey.startsWith("kh_"),
     databaseConfigured: Boolean(
       process.env.DATABASE_URL ??
         process.env.POSTGRES_URL ??
