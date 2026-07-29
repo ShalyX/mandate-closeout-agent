@@ -1,0 +1,51 @@
+name: Autonomous closeout
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mandate-autonomous-closeout
+  cancel-in-progress: false
+
+jobs:
+  run-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Invoke production worker
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          response_file="$(mktemp)"
+          status="$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header "Authorization: Bearer ${CRON_SECRET}" \
+            --header "Content-Type: application/json" \
+            --data '{"source":"github-actions"}' \
+            https://mandate-closeout.vercel.app/api/autonomy-run)"
+
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "Worker returned HTTP $status"
+            sed -E 's/(token|secret|authorization)"?:[[:space:]]*"[^"]+"/\1:"[redacted]"/gi' "$response_file"
+            exit 1
+          fi
+
+          node -e '
+            const fs = require("fs");
+            const body = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            console.log(JSON.stringify({
+              requestId: body.requestId,
+              claimed: body.claimed,
+              submitted: body.submitted,
+              waiting: body.waiting,
+              completed: body.completed,
+              failed: body.failed
+            }));
+          ' "$response_file"
