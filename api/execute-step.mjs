@@ -51,13 +51,23 @@ export default async function handler(req, res) {
     return send(res, result.reused ? 200 : 202, { ok: true, ...result }, requestId);
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
-    const clientError =
+    const malformed =
       error instanceof SyntaxError ||
-      /authorization|factory|owner|eligible|simulation/i.test(message);
+      error?.name === "SyntaxError" ||
+      /JSON|Unexpected end|Unexpected token/i.test(message);
+    const rejected = /authorization|factory|owner|eligible|simulation/i.test(
+      message,
+    );
     return send(
       res,
-      clientError ? 422 : 500,
-      { error: clientError ? "execution_rejected" : "internal_error" },
+      malformed ? 400 : rejected ? 422 : 500,
+      {
+        error: malformed
+          ? "invalid_request"
+          : rejected
+            ? "execution_rejected"
+            : "internal_error",
+      },
       requestId,
     );
   }
