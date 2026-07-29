@@ -9,8 +9,12 @@ import {
   parseUnits,
 } from "viem";
 import { sepolia } from "viem/chains";
-import { buildExecutionMessage } from "../../src/shared/execution-message.mjs";
 import {
+  buildAutonomyRevocationMessage,
+  buildExecutionMessage,
+} from "../../src/shared/execution-message.mjs";
+import {
+  prepareAutonomyAuthorization,
   prepareAllowanceTarget,
   prepareMandateCreation,
   prepareObligation,
@@ -86,11 +90,14 @@ const els = {
   pauseVault: document.querySelector("#pause-vault"),
   resumeVault: document.querySelector("#resume-vault"),
   runCloseout: document.querySelector("#run-closeout"),
+  armAutonomy: document.querySelector("#arm-autonomy"),
+  revokeAutonomy: document.querySelector("#revoke-autonomy"),
 };
 
 let walletClient;
 let account;
 let selectedVault;
+let selectedAuthorization;
 
 function compactAddress(value) {
   return `${value.slice(0, 6)}…${value.slice(-4)}`;
@@ -124,6 +131,8 @@ function setBusy(busy) {
   els.pauseVault.disabled = busy;
   els.resumeVault.disabled = busy;
   els.runCloseout.disabled = busy;
+  els.armAutonomy.disabled = busy;
+  els.revokeAutonomy.disabled = busy;
 }
 
 function setControlMessage(message, tone = "") {
@@ -201,10 +210,11 @@ async function loadMandates() {
       }),
     );
     els.vaultList.querySelectorAll("[data-vault]").forEach((button) => {
-      button.addEventListener("click", () => {
+      button.addEventListener("click", async () => {
         selectedVault = records.find(
           (vault) => vault.address.toLowerCase() === button.dataset.vault.toLowerCase(),
         );
+        await loadAutonomyStatus();
         renderSelectedVault();
       });
     });
@@ -212,14 +222,30 @@ async function loadMandates() {
       selectedVault = records.find(
         (vault) => vault.address.toLowerCase() === selectedVault.address.toLowerCase(),
       );
-      if (selectedVault) renderSelectedVault();
+      if (selectedVault) {
+        await loadAutonomyStatus();
+        renderSelectedVault();
+      }
     }
   } catch (error) {
     els.vaultList.textContent = `Could not load mandates. ${messageFrom(error)}`;
   }
 }
 
-function renderSelectedVault() {
+async function loadAutonomyStatus() {
+  selectedAuthorization = null;
+  if (!selectedVault) return;
+  try {
+    const response = await fetch(
+      `/api/autonomy-status?vault=${encodeURIComponent(selectedVault.address)}`,
+      { cache: "no-store" },
+    );
+    const result = await response.json();
+    if (response.ok) selectedAuthorization = result.authorization;
+  } catch {}
+}
+
+function renderSelectedVault({ scroll = true } = {}) {
   if (!selectedVault) {
     els.vaultControl.hidden = true;
     return;
@@ -243,15 +269,109 @@ function renderSelectedVault() {
   els.resumeVault.hidden =
     !selectedVault.active || !selectedVault.paused || selectedVault.finalized;
   els.runCloseout.hidden =
-    !selectedVault.active || selectedVault.paused || selectedVault.finalized;
+    !selectedVault.active ||
+    selectedVault.paused ||
+    selectedVault.finalized ||
+    Boolean(selectedAuthorization && !["expired", "revoked"].includes(selectedAuthorization.status));
+  els.armAutonomy.hidden =
+    !selectedVault.active ||
+    selectedVault.paused ||
+    selectedVault.finalized ||
+    Boolean(selectedAuthorization && !["expired", "revoked"].includes(selectedAuthorization.status));
+  els.revokeAutonomy.hidden =
+    selectedVault.finalized ||
+    !selectedAuthorization ||
+    ["completed", "expired", "revoked"].includes(selectedAuthorization.status);
   setControlMessage(
     selectedVault.finalized
       ? "This mandate is finalized. Its executor authority has been removed."
+      : selectedAuthorization && !["expired", "revoked"].includes(selectedAuthorization.status)
+        ? `Autonomous closeout: ${selectedAuthorization.status}.${selectedAuthorization.lastAction ? ` Last action: ${selectedAuthorization.lastAction}.` : ""}${selectedAuthorization.executionId ? ` KeeperHub execution: ${selectedAuthorization.executionId}.` : ""} No further wallet signatures are required.`
       : selectedVault.active
-        ? "The configuration is locked. You can pause execution if governance must intervene."
+        ? "Configuration locked. Authorize autonomous closeout once, or run a manual fallback step."
         : "Configure the draft, fund it, then activate. Configuration locks after activation.",
   );
-  els.vaultControl.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (scroll) {
+    els.vaultControl.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+async function revokeAutonomousCloseout() {
+  if (!selectedVault || !walletClient || !account) return;
+  setBusy(true);
+  try {
+    const intent = {
+      vault: selectedVault.address,
+      owner: account,
+      chainId: sepolia.id,
+      issuedAt: Math.floor(Date.now() / 1_000),
+      nonce: crypto.randomUUID(),
+    };
+    setControlMessage("Sign to permanently disarm autonomous closeout…");
+    intent.signature = await walletClient.signMessage({
+      account,
+      message: buildAutonomyRevocationMessage(intent),
+    });
+    const response = await fetch("/api/autonomy-revoke", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(intent),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(`Revocation failed. Request ${result.requestId ?? "unknown"}.`);
+    }
+    await loadAutonomyStatus();
+    renderSelectedVault();
+    setControlMessage("Autonomous closeout revoked.", "success");
+  } catch (error) {
+    setControlMessage(messageFrom(error), "error");
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function armAutonomousCloseout() {
+  if (!selectedVault || !walletClient || !account) return;
+  setBusy(true);
+  try {
+    const issuedAt = Math.floor(Date.now() / 1_000);
+    const intent = prepareAutonomyAuthorization({
+      vault: selectedVault.address,
+      owner: account,
+      chainId: sepolia.id,
+      issuedAt,
+      endAt: selectedVault.endAt,
+      nonce: crypto.randomUUID(),
+    });
+    setControlMessage("Review and sign one bounded closeout authorization…");
+    intent.signature = await walletClient.signMessage({
+      account,
+      message: buildExecutionMessage(intent),
+    });
+    setControlMessage("Arming the autonomous worker…");
+    const response = await fetch("/api/autonomy-register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(intent),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(
+        `Autonomous authorization failed${result.code ? ` (${result.code})` : ""}. Request ${result.requestId ?? "unknown"}.`,
+      );
+    }
+    await loadAutonomyStatus();
+    renderSelectedVault();
+    setControlMessage(
+      "Autonomous closeout armed. You can leave this page; the worker will act after the close time.",
+      "success",
+    );
+  } catch (error) {
+    setControlMessage(messageFrom(error), "error");
+  } finally {
+    setBusy(false);
+  }
 }
 
 async function runCloseoutStep() {
@@ -588,6 +708,8 @@ els.resumeVault.addEventListener("click", () =>
   lifecycleWrite("resume", "Confirm resume in your wallet…", "Mandate resumed."),
 );
 els.runCloseout.addEventListener("click", runCloseoutStep);
+els.armAutonomy.addEventListener("click", armAutonomousCloseout);
+els.revokeAutonomy.addEventListener("click", revokeAutonomousCloseout);
 window.ethereum?.on?.("accountsChanged", () => {
   account = undefined;
   walletClient = undefined;
@@ -599,3 +721,8 @@ window.ethereum?.on?.("accountsChanged", () => {
 });
 readLiveState();
 window.setInterval(readLiveState, 30_000);
+window.setInterval(async () => {
+  if (!selectedVault) return;
+  await loadAutonomyStatus();
+  renderSelectedVault({ scroll: false });
+}, 20_000);

@@ -28,7 +28,8 @@ are enforced by the contract.
 
 The self-service Sepolia beta lets a user connect a wallet, create a
 factory-indexed vault they own, configure its fixed closeout policy, fund and
-activate it, and authorize one deterministic KeeperHub step at a time.
+activate it, and sign one bounded authorization for the complete closeout.
+A durable worker then advances the mandate without further wallet prompts.
 
 ## Why it exists
 
@@ -100,8 +101,8 @@ KeeperHub execution ID.
 flowchart TD
     A["Sepolia state"] --> B["State reader"]
     B --> C["Deterministic planner"]
-    C --> D["Signed API + persistence"]
-    D --> E["KeeperHub Direct Execution"]
+    C --> D["Durable lease + authorization"]
+    D --> E["KeeperHub schedule + execution"]
     E --> F["MandateVault"]
     F --> G["Receipt + audit trail"]
     G --> A
@@ -116,7 +117,7 @@ flowchart TD
 | State reader | reconstructing the current mandate from chain reads |
 | Planner | selecting the next allowlisted action in strict order |
 | Reconciler | waiting, recovering, and preventing duplicate submissions |
-| Signed execution API | owner authorization, factory checks, rate limits, persistence, and simulation |
+| Autonomous worker | one-time owner authorization, durable leases, bounded retries, and chain-state reconciliation |
 | KeeperHub adapter | submitting the selected contract method with idempotency and retrieving status |
 | Product surface | wallet setup and lifecycle controls; never acting as the source of truth |
 
@@ -190,9 +191,21 @@ Then open the local URL printed by Vite.
 No secret is required to inspect the source, run the tests, build the
 contracts, or open the frontend.
 
-The hosted execution API additionally requires server-only `KH_API_KEY` and
-`DATABASE_URL` variables. Copy `.env.example` for local setup. Never expose
-either value through a `VITE_` variable.
+The hosted execution API additionally requires server-only `KH_API_KEY`,
+`DATABASE_URL`, and `CRON_SECRET` variables. Copy `.env.example` for local
+setup. Never expose these values through a `VITE_` variable.
+
+### Autonomous scheduler
+
+Production uses a KeeperHub scheduled workflow as the primary trigger:
+
+1. Schedule trigger: every five minutes.
+2. Send Webhook: `POST https://mandate-closeout.vercel.app/api/autonomy-run`.
+3. Header: `Authorization: Bearer <CRON_SECRET>`.
+
+The route claims a short database lease and executes at most one deterministic
+action per mandate per run. A daily Vercel cron is retained as a low-frequency
+recovery trigger; it is not the primary scheduler.
 
 ### Planner CLI
 
@@ -202,6 +215,15 @@ npm run mandate -- plan --snapshot ./path/to/snapshot.json --json
 
 The command returns a stable JSON action such as `settleObligation`,
 `revokeAllowance`, `sweepToken`, `finalize`, or a typed stop condition.
+
+Inspect a hosted autonomous mandate without exposing secrets:
+
+```bash
+npm run mandate -- autonomy status \
+  --vault 0xYourVault \
+  --base-url https://mandate-closeout.vercel.app \
+  --json
+```
 
 ### Product verification
 

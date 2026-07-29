@@ -69,6 +69,7 @@ export function createExecutionService({
   readSnapshot,
   findExecution,
   saveExecution,
+  updateExecution = async () => {},
   keeperHub,
   vaultAbi,
   chainId,
@@ -111,7 +112,23 @@ export function createExecutionService({
       const existing = await runStage("execution-read", () =>
         findExecution(intent.vault, identity),
       );
-      if (existing) return { ...existing, action, reused: true };
+      let attemptCount = 1;
+      if (existing) {
+        const current = await runStage("keeperhub-status", () =>
+          keeperHub.getExecutionStatus(existing.executionId),
+        );
+        await runStage("execution-write", () => updateExecution(current));
+        if (current.status !== "failed") {
+          return { ...current, action, reused: true };
+        }
+        attemptCount = Number(existing.attemptCount ?? 1) + 1;
+        if (attemptCount > 3) {
+          throw serviceError(
+            "RETRY_LIMIT_REACHED",
+            "KeeperHub execution retry limit reached",
+          );
+        }
+      }
 
       const call = actionCall({ action, chainId, vault: intent.vault, vaultAbi });
       const simulation = await runStage("keeperhub-simulation", () =>
@@ -124,8 +141,12 @@ export function createExecutionService({
         );
       }
 
-      const idempotencyKey =
+      const baseIdempotencyKey =
         `mandate:${chainId}:${intent.vault.toLowerCase()}:${identity}`;
+      const idempotencyKey =
+        attemptCount === 1
+          ? baseIdempotencyKey
+          : `${baseIdempotencyKey}:attempt:${attemptCount}`;
       const execution = await runStage("keeperhub-submission", () =>
         keeperHub.executeContractCall(call, { idempotencyKey }),
       );
@@ -136,6 +157,7 @@ export function createExecutionService({
         executionId: execution.executionId,
         status: execution.status,
         idempotencyKey,
+        attemptCount,
       };
       await runStage("execution-write", () => saveExecution(record));
       return { ...execution, action, reused: false };

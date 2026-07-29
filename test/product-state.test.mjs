@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  prepareAutonomyAuthorization,
   prepareAllowanceTarget,
   prepareMandateCreation,
   prepareObligation,
@@ -26,6 +27,28 @@ test("judge summary reconciles the completed closeout amounts", () => {
     status: "Mandate closed",
     equation: "1,000 = 250 + 750",
   });
+});
+
+test("autonomous authorization is bounded to at most 30 days and covers closeout", () => {
+  assert.deepEqual(
+    prepareAutonomyAuthorization({
+      vault: "0x1000000000000000000000000000000000000001",
+      owner: "0x2000000000000000000000000000000000000002",
+      chainId: 11155111,
+      issuedAt: 1_786_000_000,
+      endAt: 1_786_010_000,
+      nonce: "b60aacdf-f650-46f0-b380-b206ef454723",
+    }),
+    {
+      scope: "autonomous-closeout",
+      vault: "0x1000000000000000000000000000000000000001",
+      owner: "0x2000000000000000000000000000000000000002",
+      chainId: 11155111,
+      issuedAt: 1_786_000_000,
+      validUntil: 1_788_592_000,
+      nonce: "b60aacdf-f650-46f0-b380-b206ef454723",
+    },
+  );
 });
 
 test("vault configuration rejects unsafe addresses and invalid obligations", () => {

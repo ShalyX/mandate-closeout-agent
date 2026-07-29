@@ -3,6 +3,7 @@ import { sepolia } from "viem/chains";
 import { readMandateSnapshot } from "../chain/state-reader.mjs";
 import { createKeeperHubHttpAdapter } from "../keeperhub/http-adapter.mjs";
 import { createExecutionService } from "./execution-service.mjs";
+import { createAutonomyService } from "./autonomy-service.mjs";
 import { verifyExecutionAuthorization } from "./execution-authorization.mjs";
 import { createExecutionRepository } from "./execution-repository.mjs";
 import { factoryAbi, vaultAbi } from "./abis.mjs";
@@ -52,9 +53,43 @@ export function createServerRuntime() {
       }),
     findExecution: repository.findExecution,
     saveExecution: repository.saveExecution,
+    updateExecution: repository.updateExecution,
     keeperHub,
     vaultAbi,
     chainId: CHAIN_ID,
   });
-  return { client, keeperHub, repository, service };
+  const autonomy = createAutonomyService({
+    verifyAuthorization: (intent) =>
+      verifyExecutionAuthorization(intent, { expectedChainId: CHAIN_ID }),
+    isFactoryMandate: (vault) =>
+      client.readContract({
+        address: FACTORY,
+        abi: factoryAbi,
+        functionName: "isMandate",
+        args: [vault],
+      }),
+    readOwner: (vault) =>
+      client.readContract({
+        address: vault,
+        abi: vaultAbi,
+        functionName: "owner",
+      }),
+    readLifecycle: async (vault) => {
+      const [active, finalized, endAt] = await Promise.all([
+        client.readContract({ address: vault, abi: vaultAbi, functionName: "active" }),
+        client.readContract({ address: vault, abi: vaultAbi, functionName: "finalized" }),
+        client.readContract({ address: vault, abi: vaultAbi, functionName: "endAt" }),
+      ]);
+      return { active, finalized, endAt: Number(endAt) };
+    },
+    saveAuthorization: repository.saveAuthorization,
+  });
+  const readSnapshot = (vault) =>
+    readMandateSnapshot({
+      client,
+      vault,
+      abi: vaultAbi,
+      now: Math.floor(Date.now() / 1_000),
+    });
+  return { client, keeperHub, repository, service, autonomy, readSnapshot };
 }

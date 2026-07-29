@@ -8,6 +8,29 @@ function validAddress(value, label) {
   return value;
 }
 
+export function prepareAutonomyAuthorization({
+  vault,
+  owner,
+  chainId,
+  issuedAt,
+  endAt,
+  nonce,
+}) {
+  const validUntil = issuedAt + 30 * 24 * 60 * 60;
+  if (validUntil < Number(endAt)) {
+    throw new Error("Mandate closes more than 30 days from now");
+  }
+  return {
+    scope: "autonomous-closeout",
+    vault: validAddress(vault, "vault"),
+    owner: validAddress(owner, "owner"),
+    chainId,
+    issuedAt,
+    validUntil,
+    nonce,
+  };
+}
+
 export function prepareTrackedToken(token) {
   return validAddress(token, "token");
 }

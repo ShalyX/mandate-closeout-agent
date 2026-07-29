@@ -106,3 +106,58 @@ test("execution service refuses unknown vaults and failed simulations", async ()
     /simulation/i,
   );
 });
+
+test("execution service retries a KeeperHub-terminal failure with a new idempotency key", async () => {
+  const saved = [];
+  const updated = [];
+  const service = createExecutionService({
+    verifyAuthorization: async () => true,
+    isFactoryMandate: async () => true,
+    readOwner: async () => owner,
+    readSnapshot: async () => ({
+      active: true,
+      paused: false,
+      finalized: false,
+      closeoutEligible: true,
+      now: 100,
+      obligations: [{ id: 0, status: "Pending", dueAt: 90 }],
+      allowanceTargets: [],
+      trackedTokens: [],
+    }),
+    findExecution: async () => ({
+      executionId: "failed-run",
+      status: "submitted",
+      attemptCount: 1,
+    }),
+    saveExecution: async (record) => saved.push(record),
+    updateExecution: async (record) => updated.push(record),
+    keeperHub: {
+      getExecutionStatus: async () => ({
+        executionId: "failed-run",
+        status: "failed",
+      }),
+      simulateContractCall: async () => ({ success: true, wouldRevert: false }),
+      executeContractCall: async (_call, options) => {
+        assert.match(options.idempotencyKey, /:attempt:2$/);
+        return { executionId: "retry-run", status: "submitted" };
+      },
+    },
+    vaultAbi: [],
+    chainId: 11155111,
+  });
+
+  const result = await service.executeStep({
+    scope: "autonomous-closeout",
+    vault,
+    owner,
+    chainId: 11155111,
+    issuedAt: 1,
+    validUntil: 2,
+    nonce: "nonce-value-123456",
+    signature: "0x12",
+  });
+
+  assert.equal(result.executionId, "retry-run");
+  assert.equal(saved[0].attemptCount, 2);
+  assert.equal(updated[0].status, "failed");
+});

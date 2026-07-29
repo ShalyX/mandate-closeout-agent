@@ -18,6 +18,7 @@ export default async function handler(_req, res) {
         process.env.POSTGRES_URL ??
         process.env.NEON_DATABASE_URL,
     ),
+    autonomyWorkerSecured: Boolean((process.env.CRON_SECRET ?? "").trim()),
     factoryReachable: false,
     databaseReachable: false,
     rateLimitWritable: false,
