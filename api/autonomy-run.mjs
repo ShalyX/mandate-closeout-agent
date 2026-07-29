@@ -24,7 +24,13 @@ export default async function handler(req, res) {
       executeStep: runtime.service.executeStep,
     });
     return res.status(200).json({ ok: true, ...result, requestId });
-  } catch {
+  } catch (error) {
+    console.error("Autonomy worker unavailable", {
+      requestId,
+      name: error?.name ?? "Error",
+      code: error?.code ?? null,
+      message: error?.message ?? "Unknown worker failure",
+    });
     return res.status(503).json({ error: "worker_unavailable", requestId });
   }
 }
