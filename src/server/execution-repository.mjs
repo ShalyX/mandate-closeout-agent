@@ -203,13 +203,13 @@ export function createExecutionRepository({
           FOR UPDATE SKIP LOCKED
           LIMIT ${limit}
         )
-        UPDATE mandate_authorizations AS authorization
+        UPDATE mandate_authorizations AS auth
         SET lease_token = ${leaseToken},
             leased_until = NOW() + (${leaseSeconds} * INTERVAL '1 second'),
             updated_at = NOW()
         FROM candidates
-        WHERE authorization.vault = candidates.vault
-        RETURNING authorization.*
+        WHERE auth.vault = candidates.vault
+        RETURNING auth.*
       `;
       return rows.map((row) => ({
         scope: "autonomous-closeout",
