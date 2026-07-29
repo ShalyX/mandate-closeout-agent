@@ -1,10 +1,13 @@
 import { neon } from "@neondatabase/serverless";
 
 export function createExecutionRepository({
-  connectionString = process.env.DATABASE_URL,
+  connectionString =
+    process.env.DATABASE_URL ??
+    process.env.POSTGRES_URL ??
+    process.env.NEON_DATABASE_URL,
   sql = connectionString ? neon(connectionString) : undefined,
 } = {}) {
-  if (!sql) throw new Error("DATABASE_URL is required");
+  if (!sql) throw new Error("A Postgres connection URL is required");
   let initialized;
 
   const initialize = () => {

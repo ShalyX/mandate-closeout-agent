@@ -13,14 +13,15 @@ const RPC_URL =
   process.env.SEPOLIA_RPC_URL ?? "https://ethereum-sepolia-rpc.publicnode.com";
 
 export function createServerRuntime() {
-  if (!process.env.KH_API_KEY) throw new Error("KH_API_KEY is required");
+  const keeperHubApiKey = process.env.KH_API_KEY ?? process.env.KH_TOKEN;
+  if (!keeperHubApiKey) throw new Error("KeeperHub API key is required");
   const client = createPublicClient({
     chain: sepolia,
     transport: http(RPC_URL, { timeout: 8_000 }),
   });
   const repository = createExecutionRepository();
   const keeperHub = createKeeperHubHttpAdapter({
-    apiKey: process.env.KH_API_KEY,
+    apiKey: keeperHubApiKey,
   });
   const service = createExecutionService({
     verifyAuthorization: (intent) =>
