@@ -32,16 +32,28 @@ export default async function handler(req, res) {
     ) {
       return send(res, 400, { error: "invalid_request" }, requestId);
     }
-    const runtime = createServerRuntime();
+    let runtime;
+    try {
+      runtime = createServerRuntime();
+    } catch (error) {
+      if (error && typeof error === "object") error.stage = "configuration";
+      throw error;
+    }
     const subject = String(
       req.headers["x-forwarded-for"] ?? req.socket?.remoteAddress ?? "unknown",
     )
       .split(",")[0]
       .trim();
-    const allowed = await runtime.repository.takeRateLimit(subject, {
-      limit: 10,
-      windowSeconds: 60,
-    });
+    let allowed;
+    try {
+      allowed = await runtime.repository.takeRateLimit(subject, {
+        limit: 10,
+        windowSeconds: 60,
+      });
+    } catch (error) {
+      if (error && typeof error === "object") error.stage = "rate-limit";
+      throw error;
+    }
     if (!allowed) {
       res.setHeader("Retry-After", "60");
       return send(res, 429, { error: "rate_limited" }, requestId);
@@ -55,6 +67,7 @@ export default async function handler(req, res) {
       requestId,
       code: error?.code ?? "UNCLASSIFIED",
       name: error?.name ?? "UnknownError",
+      stage: error?.stage ?? "unclassified",
     });
     const malformed =
       error instanceof SyntaxError ||
@@ -86,6 +99,9 @@ export default async function handler(req, res) {
             : "internal_error",
         ...(error?.code && /^[A-Z0-9_-]{2,80}$/i.test(error.code)
           ? { code: error.code }
+          : {}),
+        ...(error?.stage && /^[a-z-]{2,40}$/.test(error.stage)
+          ? { stage: error.stage }
           : {}),
       },
       requestId,

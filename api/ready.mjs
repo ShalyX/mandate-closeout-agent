@@ -14,6 +14,7 @@ export default async function handler(_req, res) {
     ),
     factoryReachable: false,
     databaseReachable: false,
+    rateLimitWritable: false,
   };
   const client = createPublicClient({
     chain: sepolia,
@@ -30,7 +31,12 @@ export default async function handler(_req, res) {
   } catch {}
   if (checks.databaseConfigured) {
     try {
-      checks.databaseReachable = await createExecutionRepository().ping();
+      const repository = createExecutionRepository();
+      checks.databaseReachable = await repository.ping();
+      checks.rateLimitWritable = await repository.takeRateLimit(
+        "readiness-probe",
+        { limit: 1_000_000, windowSeconds: 60 },
+      );
     } catch {}
   }
   const ok = Object.values(checks).every(Boolean);

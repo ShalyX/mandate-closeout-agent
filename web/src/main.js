@@ -282,8 +282,8 @@ async function runCloseoutStep() {
         result.error === "execution_rejected"
           ? "Closeout is not eligible yet or the next action failed simulation."
           : result.error === "dependency_unavailable"
-            ? `Execution dependency unavailable${result.code ? ` (${result.code})` : ""}. Request ${result.requestId}.`
-            : `The execution service is unavailable. Request ${result.requestId ?? "unknown"}.`,
+            ? `Execution dependency unavailable${result.stage ? ` at ${result.stage}` : ""}${result.code ? ` (${result.code})` : ""}. Request ${result.requestId}.`
+            : `The execution service failed${result.stage ? ` at ${result.stage}` : ""}${result.code ? ` (${result.code})` : ""}. Request ${result.requestId ?? "unknown"}.`,
       );
     }
     setControlMessage(

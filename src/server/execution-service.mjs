@@ -6,6 +6,15 @@ function serviceError(code, message) {
   return error;
 }
 
+async function runStage(stage, operation) {
+  try {
+    return await operation();
+  } catch (error) {
+    if (error && typeof error === "object" && !error.stage) error.stage = stage;
+    throw error;
+  }
+}
+
 function actionCall({ action, chainId, vault, vaultAbi }) {
   if (action.kind === "settleObligation") {
     return {
@@ -66,21 +75,31 @@ export function createExecutionService({
 }) {
   return {
     async executeStep(intent) {
-      if (!(await verifyAuthorization(intent))) {
+      if (
+        !(await runStage("authorization", () => verifyAuthorization(intent)))
+      ) {
         throw serviceError("AUTHORIZATION_INVALID", "Invalid owner authorization");
       }
-      if (!(await isFactoryMandate(intent.vault))) {
+      if (
+        !(await runStage("factory-validation", () =>
+          isFactoryMandate(intent.vault),
+        ))
+      ) {
         throw serviceError(
           "UNKNOWN_VAULT",
           "Vault is not registered by the Mandate factory",
         );
       }
-      const chainOwner = await readOwner(intent.vault);
+      const chainOwner = await runStage("owner-read", () =>
+        readOwner(intent.vault),
+      );
       if (chainOwner.toLowerCase() !== intent.owner.toLowerCase()) {
         throw serviceError("OWNER_MISMATCH", "Signer is not the mandate owner");
       }
 
-      const snapshot = await readSnapshot(intent.vault);
+      const snapshot = await runStage("state-read", () =>
+        readSnapshot(intent.vault),
+      );
       if (!snapshot.closeoutEligible) {
         throw serviceError(
           "NOT_ELIGIBLE",
@@ -89,11 +108,15 @@ export function createExecutionService({
       }
       const action = planNextAction(snapshot);
       const identity = actionIdentity(action);
-      const existing = await findExecution(intent.vault, identity);
+      const existing = await runStage("execution-read", () =>
+        findExecution(intent.vault, identity),
+      );
       if (existing) return { ...existing, action, reused: true };
 
       const call = actionCall({ action, chainId, vault: intent.vault, vaultAbi });
-      const simulation = await keeperHub.simulateContractCall(call);
+      const simulation = await runStage("keeperhub-simulation", () =>
+        keeperHub.simulateContractCall(call),
+      );
       if (!simulation.success || simulation.wouldRevert) {
         throw serviceError(
           "SIMULATION_REJECTED",
@@ -103,9 +126,9 @@ export function createExecutionService({
 
       const idempotencyKey =
         `mandate:${chainId}:${intent.vault.toLowerCase()}:${identity}`;
-      const execution = await keeperHub.executeContractCall(call, {
-        idempotencyKey,
-      });
+      const execution = await runStage("keeperhub-submission", () =>
+        keeperHub.executeContractCall(call, { idempotencyKey }),
+      );
       const record = {
         vault: intent.vault,
         owner: intent.owner,
@@ -114,7 +137,7 @@ export function createExecutionService({
         status: execution.status,
         idempotencyKey,
       };
-      await saveExecution(record);
+      await runStage("execution-write", () => saveExecution(record));
       return { ...execution, action, reused: false };
     },
   };
