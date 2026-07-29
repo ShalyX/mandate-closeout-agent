@@ -280,6 +280,9 @@ function renderSelectedVault({ scroll = true } = {}) {
         selectedAuthorization.executionId
           ? `KeeperHub execution: ${selectedAuthorization.executionId}.`
           : null,
+        selectedAuthorization.errorCode
+          ? `Last error: ${selectedAuthorization.errorCode}.`
+          : null,
         `Authorization expires ${new Date(selectedAuthorization.validUntil * 1_000).toLocaleString()}.`,
       ]
         .filter(Boolean)
