@@ -9,8 +9,8 @@ test("repository durably saves, leases, and releases autonomous authority", asyn
     statements.push({ text, values });
     if (text.includes("RETURNING") && text.includes("mandate_authorizations")) {
       return [{
-        vault: "0xvault",
-        owner_address: "0xowner",
+        vault: "0xc1fd23a0a7106c2312a64018c33e528ef4975c07",
+        owner_address: "0x1dcb045123730e606a88380bce534332f50332d2",
         chain_id: 11155111,
         issued_at: 100,
         valid_until: 200,
@@ -35,6 +35,8 @@ test("repository durably saves, leases, and releases autonomous authority", asyn
   const claimed = await repository.claimAuthorizations({ limit: 3 });
   assert.equal(claimed.length, 1);
   assert.equal(claimed[0].scope, "autonomous-closeout");
+  assert.equal(claimed[0].vault, "0xc1fD23A0a7106C2312A64018c33E528ef4975c07");
+  assert.equal(claimed[0].owner, "0x1DcB045123730e606A88380BCe534332F50332d2");
   assert.match(claimed[0].leaseToken, /^[0-9a-f-]{36}$/);
 
   await repository.releaseAuthorization("0xVAULT", claimed[0].leaseToken, {
