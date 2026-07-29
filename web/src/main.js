@@ -84,6 +84,9 @@ const els = {
   vaultControl: document.querySelector("#vault-control"),
   selectedVault: document.querySelector("#selected-vault"),
   selectedState: document.querySelector("#selected-state"),
+  autonomyCard: document.querySelector("#autonomy-card"),
+  autonomyStatus: document.querySelector("#autonomy-status"),
+  autonomyDetail: document.querySelector("#autonomy-detail"),
   controlMessage: document.querySelector("#control-message"),
   controlForms: document.querySelectorAll(".control-form"),
   activateVault: document.querySelector("#activate-vault"),
@@ -260,6 +263,30 @@ function renderSelectedVault({ scroll = true } = {}) {
   els.vaultControl.hidden = false;
   els.selectedVault.textContent = selectedVault.address;
   els.selectedState.textContent = state;
+  els.autonomyCard.hidden = false;
+  els.autonomyStatus.textContent = selectedAuthorization
+    ? selectedAuthorization.status.toUpperCase()
+    : selectedVault.active
+      ? "NOT AUTHORIZED"
+      : "NOT ARMED";
+  els.autonomyDetail.textContent = selectedAuthorization
+    ? [
+        selectedAuthorization.status === "waiting"
+          ? "Authorized. The worker checks every five minutes and will act after the close time."
+          : "The worker has a bounded authorization for this mandate.",
+        selectedAuthorization.lastAction
+          ? `Last action: ${selectedAuthorization.lastAction}.`
+          : null,
+        selectedAuthorization.executionId
+          ? `KeeperHub execution: ${selectedAuthorization.executionId}.`
+          : null,
+        `Authorization expires ${new Date(selectedAuthorization.validUntil * 1_000).toLocaleString()}.`,
+      ]
+        .filter(Boolean)
+        .join(" ")
+    : selectedVault.active
+      ? "No autonomous authorization found. Sign once to arm the worker; manual closeout remains available."
+      : "Activate the mandate, then sign once to let the worker execute its bounded closeout after expiry.";
   els.controlForms.forEach((form) => {
     form.hidden = selectedVault.active || selectedVault.finalized;
   });
