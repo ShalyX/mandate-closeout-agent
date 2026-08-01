@@ -166,6 +166,8 @@ a:focus-visible {
   overflow: hidden;
   --rotor-x: 80%;
   --rotor-y: 47%;
+  --rotor-rx: 11%;
+  --rotor-ry: 13%;
 }
 
 .hero-art img {
@@ -185,15 +187,11 @@ a:focus-visible {
 .hero-art-rotor-window {
   position: absolute;
   inset: 0;
-  clip-path: ellipse(10.9% 13.4% at var(--rotor-x) var(--rotor-y));
+  clip-path: ellipse(var(--rotor-rx) var(--rotor-ry) at var(--rotor-x) var(--rotor-y));
   pointer-events: none;
 }
 
 .hero-art-rotor {
-  position: absolute;
-  inset: 0;
-  background: url("/assets/mandate-seal.webp") center / cover no-repeat;
-  filter: saturate(0.9) contrast(1.04) brightness(1.24);
   transform-origin: var(--rotor-x) var(--rotor-y);
   animation: rotor-plate-spin 14s linear infinite;
   will-change: transform;
@@ -1147,14 +1145,6 @@ footer {
 
   .hero-art img {
     object-position: 62% center;
-  }
-
-  .hero-art {
-    --rotor-x: 100%;
-  }
-
-  .hero-art-rotor {
-    background-position: 62% center;
   }
 
   .hero-vignette {
