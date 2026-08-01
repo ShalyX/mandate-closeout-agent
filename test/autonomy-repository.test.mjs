@@ -98,6 +98,53 @@ test("repository exposes a public-safe authorization status without its signatur
   assert.equal("signature" in status, false);
 });
 
+test("repository exposes ordered public-safe execution evidence for one vault", async () => {
+  const sql = async (parts) => {
+    const text = parts.join("?");
+    if (text.includes("FROM mandate_executions") && text.includes("ORDER BY created_at")) {
+      return [
+        {
+          action_key: "settleObligation:0",
+          execution_id: "run-settle",
+          status: "completed",
+          transaction_hash: "0xsettle",
+          created_at: "2026-07-29T15:00:00.000Z",
+          updated_at: "2026-07-29T15:00:12.000Z",
+        },
+        {
+          action_key: "finalize",
+          execution_id: "run-finalize",
+          status: "completed",
+          transaction_hash: "0xfinalize",
+          created_at: "2026-07-29T15:15:00.000Z",
+          updated_at: "2026-07-29T15:15:12.000Z",
+        },
+      ];
+    }
+    return [];
+  };
+  const repository = createExecutionRepository({ sql });
+
+  assert.deepEqual(await repository.listExecutionEvidence("0xVAULT"), [
+    {
+      action: "settleObligation:0",
+      executionId: "run-settle",
+      status: "completed",
+      transactionHash: "0xsettle",
+      createdAt: "2026-07-29T15:00:00.000Z",
+      updatedAt: "2026-07-29T15:00:12.000Z",
+    },
+    {
+      action: "finalize",
+      executionId: "run-finalize",
+      status: "completed",
+      transactionHash: "0xfinalize",
+      createdAt: "2026-07-29T15:15:00.000Z",
+      updatedAt: "2026-07-29T15:15:12.000Z",
+    },
+  ]);
+});
+
 test("repository revokes only the authorization owned by the signer", async () => {
   const statements = [];
   const sql = async (parts, ...values) => {
