@@ -142,6 +142,31 @@ export function createExecutionRepository({
       `;
     },
 
+    async listExecutionEvidence(vault) {
+      await initialize();
+      const rows = await sql`
+        SELECT action_key, execution_id, status, transaction_hash,
+               created_at, updated_at
+        FROM mandate_executions
+        WHERE vault = ${vault.toLowerCase()}
+        ORDER BY created_at ASC
+      `;
+      return rows.map((row) => ({
+        action: row.action_key,
+        executionId: row.execution_id,
+        status: row.status,
+        transactionHash: row.transaction_hash,
+        createdAt:
+          row.created_at instanceof Date
+            ? row.created_at.toISOString()
+            : row.created_at,
+        updatedAt:
+          row.updated_at instanceof Date
+            ? row.updated_at.toISOString()
+            : row.updated_at,
+      }));
+    },
+
     async takeRateLimit(subject, { limit, windowSeconds, now = Date.now() }) {
       await initialize();
       const bucket = Math.floor(now / 1_000 / windowSeconds);
