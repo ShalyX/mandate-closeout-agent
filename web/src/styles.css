@@ -164,10 +164,6 @@ a:focus-visible {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  --rotor-x: 80%;
-  --rotor-y: 47%;
-  --rotor-rx: 11%;
-  --rotor-ry: 13%;
 }
 
 .hero-art img {
@@ -182,31 +178,6 @@ a:focus-visible {
 
 .hero-art-base {
   animation: hero-enter 1.4s var(--ease-seal) both;
-}
-
-.hero-art-rotor-window {
-  position: absolute;
-  inset: 0;
-  clip-path: ellipse(var(--rotor-rx) var(--rotor-ry) at var(--rotor-x) var(--rotor-y));
-  pointer-events: none;
-}
-
-.hero-art-rotor {
-  transform-origin: var(--rotor-x) var(--rotor-y);
-  animation: rotor-plate-spin 14s linear infinite;
-  will-change: transform;
-}
-
-.hero.is-spinning-fast .hero-art-rotor {
-  animation-duration: 2.3s;
-}
-
-.hero.is-seal-paused .hero-art-rotor {
-  animation-play-state: paused;
-}
-
-@keyframes rotor-plate-spin {
-  to { transform: rotate(360deg); }
 }
 
 .hero-vignette {
@@ -1355,8 +1326,7 @@ footer {
     transition-duration: 0.01ms !important;
   }
 
-  .hero-art-base,
-  .hero-art-rotor {
+  .hero-art-base {
     animation: none !important;
   }
 }
