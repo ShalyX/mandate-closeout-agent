@@ -1,0 +1,33 @@
+1
+00:00:00,000 --> 00:00:07,000
+This mandate has expired, and nobody is sitting around to close it.
+
+2
+00:00:07,000 --> 00:00:17,000
+Closing temporary onchain programs still means chasing signers,
+checking old permissions, and proving nothing was left behind.
+
+3
+00:00:17,000 --> 00:00:31,000
+The owner fixes the treasury and close date, registers the obligations
+and permissions, then signs one bounded authorization.
+
+4
+00:00:31,000 --> 00:00:43,000
+After expiry, the worker re-reads Sepolia, chooses one permitted action,
+simulates it, and submits it through KeeperHub.
+
+5
+00:00:43,000 --> 00:01:02,000
+After every receipt, the agent reads the chain again before moving forward,
+so a restart cannot become a duplicate payment.
+
+6
+00:01:02,000 --> 00:01:17,000
+Every row links to a real Sepolia transaction: zero vault balance,
+zero allowance, and the executor replaced by the zero address.
+
+7
+00:01:17,000 --> 00:01:28,000
+Every approved obligation resolved, every residual asset returned,
+and no agent authority left behind.
