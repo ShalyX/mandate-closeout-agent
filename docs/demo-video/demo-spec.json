@@ -1,0 +1,50 @@
+{
+  "viewport": { "width": 1440, "height": 900 },
+  "record_size": { "width": 1440, "height": 900 },
+  "headless": true,
+  "slow_mo_ms": 30,
+  "locale": "en-US",
+  "color_scheme": "dark",
+  "final_pause_ms": 1800,
+  "storage_state": null,
+  "mask_selectors": ["[data-sensitive]"],
+  "steps": [
+    {
+      "action": "goto",
+      "url": "https://mandate-closeout.vercel.app/",
+      "caption": "Expired mandates should close cleanly",
+      "pause_after_ms": 2600
+    },
+    {
+      "action": "scroll",
+      "y": 760,
+      "caption": "Create a vault with fixed closeout rules",
+      "pause_after_ms": 2200
+    },
+    {
+      "action": "scroll",
+      "y": 920,
+      "caption": "One bounded authorization. No arbitrary calls.",
+      "pause_after_ms": 1800
+    },
+    {
+      "action": "scroll",
+      "y": 700,
+      "caption": "Every action runs through KeeperHub",
+      "pause_after_ms": 1400
+    },
+    {
+      "action": "click",
+      "role": "button",
+      "name": "Replay closeout",
+      "caption": "Settle → revoke → sweep → finalize",
+      "pause_after_ms": 5200
+    },
+    {
+      "action": "scroll",
+      "y": 920,
+      "caption": "1,000 mUSD fully reconciled on Sepolia",
+      "pause_after_ms": 3200
+    }
+  ]
+}
