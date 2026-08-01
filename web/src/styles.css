@@ -164,6 +164,8 @@ a:focus-visible {
   position: absolute;
   inset: 0;
   overflow: hidden;
+  --rotor-x: 80%;
+  --rotor-y: 47%;
 }
 
 .hero-art img {
@@ -177,54 +179,36 @@ a:focus-visible {
 }
 
 .hero-art-base {
-  inset: -3%;
-  width: 106%;
-  height: 106%;
-  transform-origin: 80% 50%;
-  animation:
-    hero-enter 1.4s var(--ease-seal) both,
-    seal-orbit 18s 1.4s var(--ease-seal) infinite alternate;
-  will-change: transform;
+  animation: hero-enter 1.4s var(--ease-seal) both;
 }
 
-.hero-art-sweep {
+.hero-art-rotor-window {
   position: absolute;
-  width: min(42vw, 620px);
-  aspect-ratio: 1;
-  left: 80%;
-  top: 50%;
-  border-radius: 50%;
-  background: conic-gradient(from 0deg, transparent 0 78%, rgba(231, 255, 92, 0.11) 88%, transparent 96%);
-  mix-blend-mode: screen;
-  transform: translate(-50%, -50%);
-  animation: seal-light-sweep 12s linear infinite;
+  inset: 0;
+  clip-path: ellipse(10.9% 13.4% at var(--rotor-x) var(--rotor-y));
   pointer-events: none;
 }
 
-.hero.is-spinning-fast .hero-art-base {
-  animation-duration: 1.4s, 2.3s;
+.hero-art-rotor {
+  position: absolute;
+  inset: 0;
+  background: url("/assets/mandate-seal.webp") center / cover no-repeat;
+  filter: saturate(0.9) contrast(1.04) brightness(1.24);
+  transform-origin: var(--rotor-x) var(--rotor-y);
+  animation: rotor-plate-spin 14s linear infinite;
+  will-change: transform;
 }
 
-.hero.is-spinning-fast .hero-art-sweep {
+.hero.is-spinning-fast .hero-art-rotor {
   animation-duration: 2.3s;
 }
 
-.hero.is-seal-paused .hero-art-base,
-.hero.is-seal-paused .hero-art-sweep {
+.hero.is-seal-paused .hero-art-rotor {
   animation-play-state: paused;
 }
 
-@keyframes seal-orbit {
-  from {
-    transform: scale(1.025) rotate(-0.55deg) translate3d(-0.35%, 0.2%, 0);
-  }
-  to {
-    transform: scale(1.04) rotate(0.55deg) translate3d(0.35%, -0.2%, 0);
-  }
-}
-
-@keyframes seal-light-sweep {
-  to { transform: translate(-50%, -50%) rotate(360deg); }
+@keyframes rotor-plate-spin {
+  to { transform: rotate(360deg); }
 }
 
 .hero-vignette {
@@ -1165,8 +1149,12 @@ footer {
     object-position: 62% center;
   }
 
-  .hero-art-sweep {
-    left: 100%;
+  .hero-art {
+    --rotor-x: 100%;
+  }
+
+  .hero-art-rotor {
+    background-position: 62% center;
   }
 
   .hero-vignette {
@@ -1378,7 +1366,7 @@ footer {
   }
 
   .hero-art-base,
-  .hero-art-sweep {
+  .hero-art-rotor {
     animation: none !important;
   }
 }
