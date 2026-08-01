@@ -14,4 +14,6 @@ test("hero mechanism rotates independently and respects reduced motion", async (
   assert.match(css, /\.hero\.is-spinning-fast \.hero-art-rotor/);
   assert.match(css, /prefers-reduced-motion:\s*reduce[\s\S]*\.hero-art-rotor/);
   assert.match(script, /is-spinning-fast/);
+  assert.match(script, /function alignHeroRotor/);
+  assert.match(script, /1334 \* scale/);
 });
