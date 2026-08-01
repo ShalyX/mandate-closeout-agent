@@ -87,6 +87,7 @@ const els = {
   autonomyCard: document.querySelector("#autonomy-card"),
   autonomyStatus: document.querySelector("#autonomy-status"),
   autonomyDetail: document.querySelector("#autonomy-detail"),
+  autonomyTimeline: document.querySelector("#autonomy-timeline"),
   controlMessage: document.querySelector("#control-message"),
   controlForms: document.querySelectorAll(".control-form"),
   activateVault: document.querySelector("#activate-vault"),
@@ -101,6 +102,7 @@ let walletClient;
 let account;
 let selectedVault;
 let selectedAuthorization;
+let selectedExecutions = [];
 
 function compactAddress(value) {
   return `${value.slice(0, 6)}…${value.slice(-4)}`;
@@ -218,6 +220,7 @@ async function loadMandates() {
           (vault) => vault.address.toLowerCase() === button.dataset.vault.toLowerCase(),
         );
         await loadAutonomyStatus();
+        await loadAutonomyEvidence();
         renderSelectedVault();
       });
     });
@@ -227,6 +230,7 @@ async function loadMandates() {
       );
       if (selectedVault) {
         await loadAutonomyStatus();
+        await loadAutonomyEvidence();
         renderSelectedVault();
       }
     }
@@ -246,6 +250,63 @@ async function loadAutonomyStatus() {
     const result = await response.json();
     if (response.ok) selectedAuthorization = result.authorization;
   } catch {}
+}
+
+async function loadAutonomyEvidence() {
+  selectedExecutions = [];
+  if (!selectedVault || !selectedAuthorization) return;
+  try {
+    const response = await fetch(
+      `/api/autonomy-evidence?vault=${encodeURIComponent(selectedVault.address)}`,
+      { cache: "no-store" },
+    );
+    const result = await response.json();
+    if (response.ok && Array.isArray(result.executions)) {
+      selectedExecutions = result.executions;
+    }
+  } catch {}
+}
+
+const executionLabels = {
+  settleObligation: ["SETTLE", "Required obligation paid"],
+  revokeAllowance: ["REVOKE", "Allowance removed"],
+  sweepToken: ["SWEEP", "Residual returned to treasury"],
+  finalize: ["FINALIZE", "Executor authority removed"],
+};
+
+function renderAutonomyTimeline() {
+  els.autonomyTimeline.hidden = selectedExecutions.length === 0;
+  els.autonomyTimeline.replaceChildren(
+    ...selectedExecutions.map((execution, index) => {
+      const kind = execution.action.split(":")[0];
+      const [label, detail] = executionLabels[kind] ?? [kind.toUpperCase(), "Onchain action"];
+      const item = document.createElement("li");
+      item.dataset.status = execution.status;
+      const indexLabel = document.createElement("span");
+      indexLabel.className = "autonomy-step-index";
+      indexLabel.textContent = String(index + 1).padStart(2, "0");
+      const copy = document.createElement("div");
+      const heading = document.createElement("strong");
+      heading.textContent = label;
+      const description = document.createElement("span");
+      description.textContent = detail;
+      const executionId = document.createElement("code");
+      executionId.textContent = execution.executionId;
+      copy.append(heading, description, executionId);
+      const proof = execution.transactionLink
+        ? document.createElement("a")
+        : document.createElement("span");
+      proof.className = "autonomy-proof-link";
+      proof.textContent = execution.transactionLink ? "RECEIPT ↗" : execution.status.toUpperCase();
+      if (execution.transactionLink) {
+        proof.href = execution.transactionLink;
+        proof.target = "_blank";
+        proof.rel = "noreferrer";
+      }
+      item.append(indexLabel, copy, proof);
+      return item;
+    }),
+  );
 }
 
 function renderSelectedVault({ scroll = true } = {}) {
@@ -290,6 +351,7 @@ function renderSelectedVault({ scroll = true } = {}) {
     : selectedVault.active
       ? "No autonomous authorization found. Sign once to arm the worker; manual closeout remains available."
       : "Activate the mandate, then sign once to let the worker execute its bounded closeout after expiry.";
+  renderAutonomyTimeline();
   els.controlForms.forEach((form) => {
     form.hidden = selectedVault.active || selectedVault.finalized;
   });
@@ -352,6 +414,7 @@ async function revokeAutonomousCloseout() {
       throw new Error(`Revocation failed. Request ${result.requestId ?? "unknown"}.`);
     }
     await loadAutonomyStatus();
+    await loadAutonomyEvidence();
     renderSelectedVault();
     setControlMessage("Autonomous closeout revoked.", "success");
   } catch (error) {
@@ -392,6 +455,7 @@ async function armAutonomousCloseout() {
       );
     }
     await loadAutonomyStatus();
+    await loadAutonomyEvidence();
     renderSelectedVault();
     setControlMessage(
       "Autonomous closeout armed. You can leave this page; the worker will act after the close time.",
@@ -754,5 +818,11 @@ window.setInterval(readLiveState, 30_000);
 window.setInterval(async () => {
   if (!selectedVault) return;
   await loadAutonomyStatus();
+  if (
+    selectedExecutions.length === 0 ||
+    selectedAuthorization?.status === "running"
+  ) {
+    await loadAutonomyEvidence();
+  }
   renderSelectedVault({ scroll: false });
 }, 20_000);
