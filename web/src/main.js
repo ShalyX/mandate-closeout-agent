@@ -784,6 +784,30 @@ function replayCloseout() {
   }, 4600);
 }
 
+function alignHeroRotor() {
+  const art = document.querySelector(".hero-art");
+  const image = document.querySelector(".hero-art-base");
+  if (!art || !image || !image.naturalWidth) return;
+
+  const { width, height } = art.getBoundingClientRect();
+  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
+  const renderedWidth = image.naturalWidth * scale;
+  const renderedHeight = image.naturalHeight * scale;
+  const positionX = window.matchMedia("(max-width: 900px)").matches ? 0.62 : 0.5;
+  const offsetX = (width - renderedWidth) * positionX;
+  const offsetY = (height - renderedHeight) * 0.5;
+
+  art.style.setProperty("--rotor-x", `${offsetX + 1334 * scale}px`);
+  art.style.setProperty("--rotor-y", `${offsetY + 441 * scale}px`);
+  art.style.setProperty("--rotor-rx", `${184 * scale}px`);
+  art.style.setProperty("--rotor-ry", `${123 * scale}px`);
+}
+
+const heroImage = document.querySelector(".hero-art-base");
+if (heroImage?.complete) alignHeroRotor();
+else heroImage?.addEventListener("load", alignHeroRotor, { once: true });
+window.addEventListener("resize", alignHeroRotor, { passive: true });
+
 if ("IntersectionObserver" in window) {
   const sealObserver = new IntersectionObserver(([entry]) => {
     els.hero.classList.toggle("is-seal-paused", !entry.isIntersecting);
