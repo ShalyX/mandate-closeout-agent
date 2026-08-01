@@ -12,8 +12,12 @@ test("vault controls expose a persistent autonomous closeout status card", async
   assert.match(html, /id="autonomy-card"/);
   assert.match(html, /id="autonomy-status"/);
   assert.match(html, /id="autonomy-detail"/);
+  assert.match(html, /id="autonomy-timeline"/);
   assert.match(script, /els\.autonomyCard\.hidden/);
   assert.match(script, /els\.autonomyStatus\.textContent/);
   assert.match(script, /els\.autonomyDetail\.textContent/);
   assert.match(script, /selectedAuthorization\.errorCode/);
+  assert.match(script, /loadAutonomyEvidence/);
+  assert.match(script, /selectedExecutions/);
+  assert.match(script, /execution\.transactionLink/);
 });
