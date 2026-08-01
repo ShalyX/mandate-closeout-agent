@@ -71,7 +71,6 @@ const els = {
   equation: document.querySelector("#equation"),
   replay: document.querySelector("#replay-button"),
   stage: document.querySelector("#closeout-stage"),
-  hero: document.querySelector(".hero"),
   walletButton: document.querySelector("#wallet-button"),
   walletStatus: document.querySelector("#wallet-status"),
   form: document.querySelector("#mandate-form"),
@@ -773,46 +772,13 @@ async function readLiveState() {
 
 function replayCloseout() {
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  els.hero.classList.add("is-spinning-fast");
   els.stage.classList.remove("is-replaying");
   void els.stage.offsetWidth;
   els.stage.classList.add("is-replaying");
   els.replay.disabled = true;
   window.setTimeout(() => {
-    els.hero.classList.remove("is-spinning-fast");
     els.replay.disabled = false;
   }, 4600);
-}
-
-function alignHeroRotor() {
-  const art = document.querySelector(".hero-art");
-  const image = document.querySelector(".hero-art-base");
-  if (!art || !image || !image.naturalWidth) return;
-
-  const { width, height } = art.getBoundingClientRect();
-  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
-  const renderedWidth = image.naturalWidth * scale;
-  const renderedHeight = image.naturalHeight * scale;
-  const positionX = window.matchMedia("(max-width: 900px)").matches ? 0.62 : 0.5;
-  const offsetX = (width - renderedWidth) * positionX;
-  const offsetY = (height - renderedHeight) * 0.5;
-
-  art.style.setProperty("--rotor-x", `${offsetX + 1334 * scale}px`);
-  art.style.setProperty("--rotor-y", `${offsetY + 441 * scale}px`);
-  art.style.setProperty("--rotor-rx", `${184 * scale}px`);
-  art.style.setProperty("--rotor-ry", `${123 * scale}px`);
-}
-
-const heroImage = document.querySelector(".hero-art-base");
-if (heroImage?.complete) alignHeroRotor();
-else heroImage?.addEventListener("load", alignHeroRotor, { once: true });
-window.addEventListener("resize", alignHeroRotor, { passive: true });
-
-if ("IntersectionObserver" in window) {
-  const sealObserver = new IntersectionObserver(([entry]) => {
-    els.hero.classList.toggle("is-seal-paused", !entry.isIntersecting);
-  });
-  sealObserver.observe(els.hero);
 }
 
 els.replay.addEventListener("click", replayCloseout);
